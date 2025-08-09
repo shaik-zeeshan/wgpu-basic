@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn WGPU</title>
+    <style>
+        canvas {
+            background-color: black;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+
+
+<body id="wasm-example">
+   <canvas id="canvas"></canvas>
+
+   <script type="module">
+    import wasm_bindgen from "./api/wasm.js";
+
+       async function run() {
+            await wasm_bindgen({module_or_path: "/api/wasm.wasm"}).catch(error => {
+                if (!error.message.startsWith("Using exceptions for control flow, don't mind me. This isn't actually an error!")) {
+                    throw error;
+                }
+            });
+        }
+
+      const reloadInterval = 1000;
+
+      async function startReloadInterval() {
+        const fetchVersion = () =>
+          fetch("/api/version").then((response) => response.text());
+        const version = await fetchVersion();
+        let intervalToken;
+
+        function reloadIfChanged() {
+          fetchVersion().then((newVersion) => {
+            if (version != newVersion) {
+              window.location.reload();
+            }
+          });
+        }
+
+        intervalToken = setInterval(reloadIfChanged, reloadInterval);
+      }
+
+      run();
+      startReloadInterval();
+    </script>
+
+</body>
+
+</html>
+

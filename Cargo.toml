@@ -25,8 +25,8 @@ anyhow = "1.0"
 log = "0.4"
 console_log = "1.0"
 
-# Video playback - using libmpv2 instead of libmpv
-# libmpv2 = "4.0"
+# casting
+bytemuck = { version = "1.16", features = [ "derive" ] }
 
 # Utilities
 raw-window-handle = "0.5"

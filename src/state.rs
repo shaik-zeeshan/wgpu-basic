@@ -17,6 +17,11 @@ pub struct State {
     num_vertices: u32,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
+
+    vertex_buffer_alt: wgpu::Buffer,
+    index_buffer_alt: wgpu::Buffer,
+    num_indices_alt: u32,
+    use_alt_diagram: bool,
 }
 
 #[repr(C)]
@@ -55,6 +60,25 @@ const INDICES: &[u16] = &[
     0, 1, 4,
     1, 2, 4,
     2, 3, 4,
+];
+
+#[rustfmt::skip]
+const VERTICES_ALT: &[Vertex] = &[
+    Vertex { position: [0.0, 0.0, 0.0], color: [0.5, 0.0, 0.5] }, // Center
+    Vertex { position: [0.0, 0.5, 0.0], color: [0.5, 0.0, 0.5] }, // A
+    Vertex { position: [-0.4755, 0.1545, 0.0], color: [0.5, 0.0, 0.5] }, // B
+    Vertex { position: [-0.2939, -0.4045, 0.0], color: [0.5, 0.0, 0.5] }, // C
+    Vertex { position: [0.2939, -0.4045, 0.0], color: [0.5, 0.0, 0.5] }, // D
+    Vertex { position: [0.4755, 0.1545, 0.0], color: [0.5, 0.0, 0.5] }, // E
+];
+
+#[rustfmt::skip]
+const INDICES_ALT: &[u16] = &[
+    0, 1, 2, // Triangle 1
+    0, 2, 3, // Triangle 2
+    0, 3, 4, // Triangle 3
+    0, 4, 5, // Triangle 4
+    0, 5, 1, // Triangle 5
 ];
 
 impl State {
@@ -192,6 +216,20 @@ impl State {
         });
         let num_indices = INDICES.len() as u32;
 
+        let vertex_buffer_alt = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES_ALT),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        // NEW!
+        let index_buffer_alt = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES_ALT),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+        let num_indices_alt = INDICES.len() as u32;
+
         Ok(Self {
             surface,
             device,
@@ -205,6 +243,10 @@ impl State {
             num_vertices,
             index_buffer,
             num_indices,
+            vertex_buffer_alt,
+            index_buffer_alt,
+            num_indices_alt,
+            use_alt_diagram: false,
         })
     }
 
@@ -217,9 +259,12 @@ impl State {
         }
     }
 
-    pub fn handle_key(&self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::Space, true) => {
+                self.use_alt_diagram = !self.use_alt_diagram;
+            }
             _ => {}
         }
     }
@@ -262,10 +307,24 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            let (vertex_buffer, index_buffer, num_indices) = if self.use_alt_diagram {
+                (
+                    self.vertex_buffer_alt.slice(..),
+                    self.index_buffer_alt.slice(..),
+                    self.num_indices_alt,
+                )
+            } else {
+                (
+                    self.vertex_buffer.slice(..),
+                    self.index_buffer.slice(..),
+                    self.num_indices,
+                )
+            };
+
+            render_pass.set_vertex_buffer(0, vertex_buffer);
             //render_pass.draw(0..self.num_vertices, 0..1);
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+            render_pass.set_index_buffer(index_buffer, wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(0..num_indices, 0, 0..1);
         }
 
         // submit will accept anything that implements IntoIter

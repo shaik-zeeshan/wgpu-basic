@@ -140,7 +140,6 @@ impl State {
         };
 
         let diffuse_bytes = include_bytes!("happy-tree.png");
-        let diffuse_bytes = include_bytes!("happy-tree.png"); // CHANGED!
         let diffuse_texture =
             texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
 

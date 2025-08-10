@@ -138,3 +138,23 @@ impl CameraController {
         }
     }
 }
+
+pub struct CameraStaging {
+    pub camera: Camera,
+    pub model_rotation: cgmath::Deg<f32>,
+}
+
+impl CameraStaging {
+    pub fn new(camera: Camera) -> Self {
+        Self {
+            camera,
+            model_rotation: cgmath::Deg(0.0),
+        }
+    }
+    pub fn update_camera(&self, camera_uniform: &mut CameraUniform) {
+        camera_uniform.view_proj = (OPENGL_TO_WGPU_MATRIX
+            * self.camera.build_view_projection_matrix()
+            * cgmath::Matrix4::from_angle_z(self.model_rotation))
+        .into();
+    }
+}

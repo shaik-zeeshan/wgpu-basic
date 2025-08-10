@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, window::Window};
 
 use crate::{
-    camera::{Camera, CameraController, CameraUniform},
+    camera::{Camera, CameraController, CameraStaging, CameraUniform},
     texture,
 };
 
@@ -24,11 +24,11 @@ pub struct State {
     num_indices: u32,
     diffuse_bind_group: wgpu::BindGroup, // NEW!
     diffuse_texture: texture::Texture,
-    camera: Camera,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     camera_controller: CameraController,
+    camera_staging: CameraStaging,
 }
 
 #[repr(C)]
@@ -206,7 +206,8 @@ impl State {
         };
 
         let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        let camera_staging = CameraStaging::new(camera);
+        camera_staging.update_camera(&mut camera_uniform);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -320,11 +321,11 @@ impl State {
             num_indices,
             diffuse_bind_group,
             diffuse_texture,
-            camera,
             camera_uniform,
             camera_buffer,
             camera_bind_group,
             camera_controller,
+            camera_staging,
         })
     }
 
@@ -402,8 +403,10 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera);
-        self.camera_uniform.update_view_proj(&self.camera);
+        self.camera_controller
+            .update_camera(&mut self.camera_staging.camera);
+        self.camera_staging.model_rotation += cgmath::Deg(2.0);
+        self.camera_staging.update_camera(&mut self.camera_uniform);
         self.queue.write_buffer(
             &self.camera_buffer,
             0,

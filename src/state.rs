@@ -19,8 +19,10 @@ pub struct State {
     num_vertices: u32,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
-    diffuse_bind_group: wgpu::BindGroup, // NEW!
+    diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: texture::Texture,
+    flower_bind_group: wgpu::BindGroup,
+    use_flower_texture: bool,
 }
 
 #[repr(C)]
@@ -140,9 +142,11 @@ impl State {
         };
 
         let diffuse_bytes = include_bytes!("happy-tree.png");
-        let diffuse_bytes = include_bytes!("happy-tree.png"); // CHANGED!
+        let flower_bytes = include_bytes!("flower.jpg");
         let diffuse_texture =
             texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
+        let flower_texture =
+            texture::Texture::from_bytes(&device, &queue, flower_bytes, "flower.jpg").unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -183,6 +187,22 @@ impl State {
             ],
             label: Some("diffuse_bind_group"),
         });
+
+        let flower_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&flower_texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&flower_texture.sampler),
+                },
+            ],
+            label: Some("flower_bind_group"),
+        });
+
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
         let render_pipeline_layout =
@@ -264,6 +284,8 @@ impl State {
             num_indices,
             diffuse_bind_group,
             diffuse_texture,
+            flower_bind_group,
+            use_flower_texture: false,
         })
     }
 
@@ -276,9 +298,12 @@ impl State {
         }
     }
 
-    pub fn handle_key(&self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::Space, true) => {
+                self.use_flower_texture = !self.use_flower_texture;
+            }
             _ => {}
         }
     }
@@ -321,7 +346,13 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]); // NEW!
+            let bind_group = if self.use_flower_texture {
+                &self.flower_bind_group
+            } else {
+                &self.diffuse_bind_group
+            };
+
+            render_pass.set_bind_group(0, bind_group, &[]); // NEW!
 
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             //render_pass.draw(0..self.num_vertices, 0..1);

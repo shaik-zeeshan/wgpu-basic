@@ -21,6 +21,9 @@ wasm-opt = false
 # Error Handling
 anyhow = "1.0"
 
+# Math
+cgmath = "0.18"
+
 # Logging
 log = "0.4"
 console_log = "1.0"
